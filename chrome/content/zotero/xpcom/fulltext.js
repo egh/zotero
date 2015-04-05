@@ -416,7 +416,15 @@ Zotero.Fulltext = new function(){
 		}
 		return false;
 	}
-	
+
+
+	function indexStringFTS(itemID, text) {
+		Zotero.DB.beginTransaction();
+		Zotero.DB.query('DELETE FROM fts_itemContent WHERE docid=?', [itemID]);
+		Zotero.DB.query('INSERT INTO fts_itemContent(docid, content) VALUES (?, ?)', [itemID, text]);
+		Zotero.DB.commitTransaction();
+		return true;
+	}
 	
 	/**
 	 * Index multiple words at once
@@ -459,6 +467,8 @@ Zotero.Fulltext = new function(){
 		yield Zotero.DB.executeTransaction(function* () {
 			this.clearItemWords(itemID, true);
 			yield indexWords(itemID, words, stats, version, synced);
+
+			this.indexStringFTS(itemID, text);
 			
 			var sql = "UPDATE fulltextItems SET synced=?";
 			var params = [synced ? parseInt(synced) : SYNC_STATE_UNSYNCED];
@@ -1577,6 +1587,7 @@ Zotero.Fulltext = new function(){
 			yield Zotero.DB.executeTransaction(function* () {
 				yield Zotero.DB.queryAsync("DELETE FROM fulltextItemWords WHERE itemID IN (" + sql + ")");
 				yield Zotero.DB.queryAsync("DELETE FROM fulltextItems WHERE itemID IN (" + sql + ")");
+				yield Zotero.DB.queryAsync("DELETE FROM fts_itemContent WHERE docid IN (" + sql + ")");
 			});
 			
 			yield this.indexItems(items, false, true);
@@ -1606,6 +1617,12 @@ Zotero.Fulltext = new function(){
 			}
 			yield Zotero.DB.queryAsync(sql);
 			
+			sql = "DELETE FROM fts_itemContent";
+			if (skipLinkedURLs) {
+				sql += " WHERE docid NOT IN (" + linkSQL + ")";
+			}
+			yield Zotero.DB.queryAsync(sql);
+
 			if (skipLinkedURLs) {
 				yield this.purgeUnusedWords();
 			}

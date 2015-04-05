@@ -305,6 +305,8 @@ CREATE TABLE syncCache (
     FOREIGN KEY (syncObjectTypeID) REFERENCES syncObjectTypes(syncObjectTypeID)
 );
 
+CREATE VIRTUAL TABLE fts_itemContent USING fts4(content);
+
 CREATE TABLE syncDeleteLog (
     syncObjectTypeID INT NOT NULL,
     libraryID INT NOT NULL,
