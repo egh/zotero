@@ -446,6 +446,14 @@ Zotero.Fulltext = new function(){
 	 * @return {Promise}
 	 */
 	var indexString = Zotero.Promise.coroutine(function* (text, charset, itemID, stats, version, synced) {
+		try {
+			if (charset && charset != 'utf-8') {
+				text = this.decoder.convertStringToUTF8(text, charset, true);
+			}
+		} catch (err) {
+			Zotero.debug("Error converting from charset " + charset, 1);
+			Zotero.debug(err, 1);
+		}
 		var words = this.semanticSplitter(text, charset);
 		
 		yield Zotero.DB.executeTransaction(function* () {
@@ -1738,15 +1746,6 @@ Zotero.Fulltext = new function(){
 		if (!text){
 			Zotero.debug('No text to index');
 			return [];
-		}
-		
-		try {
-			if (charset && charset != 'utf-8') {
-				text = this.decoder.convertStringToUTF8(text, charset, true);
-			}
-		} catch (err) {
-			Zotero.debug("Error converting from charset " + charset, 1);
-			Zotero.debug(err, 1);
 		}
 		
 		var words = {};
